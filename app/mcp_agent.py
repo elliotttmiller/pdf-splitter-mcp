@@ -1,10 +1,13 @@
-from mcp.server.fastapi import FcpServer
+from mcp.server import Server
 from .config import settings
 
-# Initialize MCP Server
-mcp = FcpServer(settings.MCP_SERVER_NAME)
+# Initialize MCP Server using the generic Server implementation from the
+# installed `mcp` package. The original code expected a FastAPI-specific
+# helper (FcpServer) which isn't present in this environment, but the
+# generic Server exposes the same registration/run APIs we need.
+mcp = Server(settings.MCP_SERVER_NAME)
 
-@mcp.tool()
+@mcp.call_tool()
 async def split_uploaded_document(file_filename: str) -> str:
     """
     Splits a previously uploaded PDF. 

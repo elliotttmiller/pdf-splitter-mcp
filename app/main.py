@@ -14,6 +14,8 @@ from .mcp_agent import mcp
 
 app = FastAPI(title="PDF Splitter MCP")
 processor = PDFProcessor(settings.TEMP_DIRECTORY)
+# Shared SSE transport for MCP endpoints
+transport = SseServerTransport("/messages")
 
 @app.post("/upload")
 async def upload_pdf(
@@ -51,11 +53,16 @@ async def get_page(filename: str):
 # --- MCP SSE Endpoints ---
 @app.get("/sse")
 async def handle_sse(request: Request):
-    transport = SseServerTransport("/messages")
-    async with mcp.connect_sse(request.scope, request.receive, request._send) as streams:
-        await mcp.run(streams[0], streams[1], transport)
-    return EventSourceResponse(transport.incoming_messages())
+    # Use the shared transport to establish an SSE connection. The transport
+    # will start the EventSourceResponse itself inside the context manager.
+    async with transport.connect_sse(request.scope, request.receive, request._send) as streams:
+        # Use the Server API's initialization options when running the MCP server
+        await mcp.run(streams[0], streams[1], mcp.create_initialization_options())
+    # The response is handled by the transport; return an empty 200 response
+    return {}
 
 @app.post("/messages")
 async def handle_messages(request: Request):
-    await mcp.handle_post_message(request.scope, request.receive, request._send)
+    # Delegate incoming POSTed client messages to the shared transport so
+    # they are routed to the correct in-memory session created by `connect_sse`.
+    await transport.handle_post_message(request.scope, request.receive, request._send)
