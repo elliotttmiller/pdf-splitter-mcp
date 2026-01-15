@@ -27,3 +27,13 @@ Thumbs.db
 # IDE-specific files
 .vscode/
 .idea/
+
+# Data / Storage (CRITICAL)
+data/
+*.pdf
+temp/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
